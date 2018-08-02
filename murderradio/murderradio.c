@@ -84,9 +84,8 @@ void set_blocking(int fd, int should_block)
                 printf("error %d setting term attributes", errno);
 }
 
-void initSerial()
+void initSerial(const char *portname)
 {
-	const char *portname = "/dev/ttyS0";
 	fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
 	if(fd < 0)
 	{
@@ -94,7 +93,7 @@ void initSerial()
 		exit(1);
 	}
 
-	set_interface_attribs(fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
+	set_interface_attribs(fd, B9600 /*B115200*/, 0);  // set speed to 115,200 bps, 8n1 (no parity)
 	set_blocking(fd, 0);                // set no blocking
 
 }
@@ -114,14 +113,14 @@ void parseSerial(char *message)
 		if(dial>120 && dial<138) {
 			if(chunkTimer[0]<=0) {
 				playMessage();
-				chunkTimer[0]=10000;
+				chunkTimer[0]=30000;
 				chunkTimer[1]=500;
 			}
 		} else {
 			if(chunkTimer[1]<=0) {
 				playTuning();
 				chunkTimer[0]=200;
-				chunkTimer[1]=2000;
+				chunkTimer[1]=20000;
 			}
 		}
 	}
@@ -153,6 +152,7 @@ void updatePlay(int elapsed)
 int main ( int argc, char** argv )
 {
 	int i;
+	const char *port="/dev/ttyS0";
 	
 // initialize SDL audio
     if (SDL_Init(SDL_INIT_AUDIO) == -1)
@@ -169,7 +169,9 @@ int main ( int argc, char** argv )
 		return 1;
 	}
 
-	initSerial();
+	if(argc>1) port=argv[1];
+
+	initSerial(port);
 	initPlay();
 
     // program main loop
@@ -193,6 +195,9 @@ int main ( int argc, char** argv )
             } // end switch
         } // end of message processing
         
+	//char message[256];
+	//sprintf(message,"%d\n",lastTime%1024);
+	//parseSerial(message);
         getSerial();
 	unsigned int now=SDL_GetTicks();
 	elapsed=now-lastTime;
